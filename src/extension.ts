@@ -7,6 +7,7 @@ interface PhpmdConfig {
     validateOn: string;
     rulesets: string[];
     minSeverity: string;
+    configPath: string;
 }
 
 class PhpmdService {
@@ -47,7 +48,8 @@ class PhpmdService {
             enable: config.get('enable', true),
             validateOn: config.get('validateOn', 'save'),
             rulesets: config.get('rulesets', ['cleancode', 'codesize', 'controversial', 'design', 'naming', 'unusedcode']),
-            minSeverity: config.get('minSeverity', 'warning')
+            minSeverity: config.get('minSeverity', 'warning'),
+            configPath: config.get('configPath', '')
         };
     }
 
@@ -126,10 +128,18 @@ class PhpmdService {
 
             // Convert absolute path to relative path from workspace root
             const relativePath = vscode.workspace.asRelativePath(document.uri);
-            const rulesets = this.config.rulesets.join(',');
 
-            // Run PHPMD through DDEV with relative path
-            const cmd = `ddev exec phpmd "${relativePath}" json ${rulesets}`;
+            // Determine PHPMD command based on configuration
+            let cmd: string;
+            if (this.config.configPath) {
+                // Use custom ruleset XML file if configured
+                const configPath = vscode.workspace.asRelativePath(this.config.configPath);
+                cmd = `ddev exec phpmd "${relativePath}" json "${configPath}"`;
+            } else {
+                // Use default rulesets if no config file is specified
+                const rulesets = this.config.rulesets.join(',');
+                cmd = `ddev exec phpmd "${relativePath}" json ${rulesets}`;
+            }
             try {
                 const output = execSync(cmd, {
                     encoding: 'utf-8',

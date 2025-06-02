@@ -44,6 +44,11 @@
           "enum": ["error", "warning", "info"],
           "default": "warning",
           "description": "Minimum severity level for reported issues"
+        },
+        "ddev-phpmd.configPath": {
+          "type": "string",
+          "default": "",
+          "description": "Path to custom PHPMD ruleset XML file (relative to workspace root)"
         }
       }
     },

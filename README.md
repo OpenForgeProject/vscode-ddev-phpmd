@@ -29,8 +29,9 @@ This extension contributes the following settings:
 
 * `ddev-phpmd.enable`: Enable/disable the extension (default: `true`)
 * `ddev-phpmd.validateOn`: Set validation trigger to 'save' or 'type' (default: `"save"`)
-* `ddev-phpmd.rulesets`: Array of PHPMD rulesets to use (default: `["cleancode", "codesize", "controversial", "design", "naming", "unusedcode"]`)
+* `ddev-phpmd.rulesets`: Array of PHPMD rulesets to use (default: `["cleancode", "codesize", "controversial", "design", "naming", "unusedcode"]`). Only used when no custom config file is specified.
 * `ddev-phpmd.minSeverity`: Minimum severity level for reported issues: "error", "warning", or "info" (default: `"warning"`)
+* `ddev-phpmd.configPath`: Path to a custom PHPMD ruleset XML file (relative to workspace root). When specified, this takes precedence over the rulesets setting.
 
 ## Usage
 
