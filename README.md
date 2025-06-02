@@ -23,20 +23,6 @@ This extension integrates PHP Mess Detector (PHPMD) with Visual Studio Code usin
 - DDEV installed and configured in your project
 - PHPMD installed in your DDEV container
 
-To install PHPMD in your DDEV container, you can add the following to your `.ddev/config.yaml`:
-
-```yaml
-hooks:
-  post-start:
-    - exec: composer global require phpmd/phpmd
-```
-
-Or run this command manually:
-
-```bash
-ddev exec composer global require phpmd/phpmd
-```
-
 ## Extension Settings
 
 This extension contributes the following settings:
