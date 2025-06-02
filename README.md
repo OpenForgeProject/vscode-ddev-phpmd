@@ -53,20 +53,6 @@ This extension contributes the following settings:
 3. Issues will be displayed in the Problems panel and highlighted in the editor
 4. You can also manually trigger analysis using the command "DDEV PHPMD: Analyze Current File"
 
-## Known Issues
-
-- The extension requires PHPMD to be installed in your DDEV container
-- File paths must be accessible from within the DDEV container
-
-## Release Notes
-
-### 0.0.1
-
-- Initial release
-- Basic PHPMD integration with DDEV
-- Configurable validation triggers and rulesets
-- Support for all standard PHPMD rulesets
-
 ## Contributing
 
 If you find a bug or want to contribute to the development of this extension, please visit our [GitHub repository](https://github.com/openforgeproject/vscode-ddev-phpmd).
