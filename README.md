@@ -44,6 +44,28 @@ This extension contributes the following settings:
 
 If you find a bug or want to contribute to the development of this extension, please visit our [GitHub repository](https://github.com/OpenForgeProject/vscode-ddev-phpmd).
 
+### Development
+
+This project uses GitHub Actions for continuous integration:
+
+- **Extension Tests**: Automatically runs linting and tests on both Ubuntu and macOS environments
+- **Build and Publish**: Creates the VSIX package and publishes to the VS Code Marketplace on tag release
+
+To run the tests locally:
+
+```bash
+# Install dependencies
+npm install
+
+# Lint and check types
+npm run lint
+npm run check-types
+
+# Compile and run tests
+npm run compile-tests
+npm run test
+```
+
 ## License
 
 This extension is licensed under the GNU General Public License v3.0 (GPL-3.0). See the [LICENSE](https://github.com/OpenForgeProject/vscode-ddev-phpmd/LICENSE) file for details.

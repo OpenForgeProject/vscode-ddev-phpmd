@@ -1,6 +1,7 @@
 .trunk/**
 .vscode/**
 .vscode-test/**
+.github/**
 out/**
 node_modules/**
 src/**

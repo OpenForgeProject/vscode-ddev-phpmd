@@ -1,0 +1,53 @@
+name: Build and Publish
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build and Publish Extension
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint code
+        run: npm run lint
+
+      - name: Check types
+        run: npm run check-types
+
+      - name: Package Extension
+        run: npm run package
+
+      - name: Install VSCE
+        run: npm install -g @vscode/vsce
+
+      - name: Build VSIX
+        run: vsce package
+
+      - name: Upload VSIX as Artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: vscode-ddev-phpmd
+          path: "*.vsix"
+
+      # Only run on tag push
+      - name: Publish to VS Code Marketplace
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: vsce publish -p ${{ secrets.VSCE_PAT }}
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
