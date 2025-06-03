@@ -42,8 +42,8 @@ This extension contributes the following settings:
 
 ## Contributing
 
-If you find a bug or want to contribute to the development of this extension, please visit our [GitHub repository](https://github.com/openforgeproject/vscode-ddev-phpmd).
+If you find a bug or want to contribute to the development of this extension, please visit our [GitHub repository](https://github.com/OpenForgeProject/vscode-ddev-phpmd).
 
 ## License
 
-This extension is licensed under the GNU General Public License v3.0 (GPL-3.0). See the [LICENSE](LICENSE) file for details.
+This extension is licensed under the GNU General Public License v3.0 (GPL-3.0). See the [LICENSE](https://github.com/OpenForgeProject/vscode-ddev-phpmd/LICENSE) file for details.
