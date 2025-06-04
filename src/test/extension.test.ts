@@ -327,4 +327,122 @@ suite('Extension Test Suite', () => {
       assert.fail('Second diagnostic should also have code object with target');
     }
   });
+
+  // Test for error message truncation at \n\n
+  test('Error messages are truncated at first \\n\\n occurrence', async () => {
+    // Test error message truncation
+    const truncateErrorMessage = (message: string): string => {
+      const doubleCrlfPosition = message.indexOf('\n\n');
+      if (doubleCrlfPosition !== -1) {
+        return message.substring(0, doubleCrlfPosition);
+      }
+      return message;
+    };
+
+    // Sample error messages
+    const singleLineError = 'Error: PHPMD command failed';
+    const multiLineError = 'Error: PHPMD command failed\nSome additional info';
+    const errorWithDoubleNewline = 'Error: PHPMD command failed\n\nStack trace:\nat line 1\nat line 2';
+    const multipleDoubleNewlines = 'Error: PHPMD command failed\n\nStack trace\n\nMore details';
+
+    // Test truncation
+    assert.strictEqual(
+      truncateErrorMessage(singleLineError),
+      singleLineError,
+      'Single line error should remain unchanged'
+    );
+
+    assert.strictEqual(
+      truncateErrorMessage(multiLineError),
+      multiLineError,
+      'Error with single newlines should remain unchanged'
+    );
+
+    assert.strictEqual(
+      truncateErrorMessage(errorWithDoubleNewline),
+      'Error: PHPMD command failed',
+      'Error with double newline should be truncated at first occurrence'
+    );
+
+    assert.strictEqual(
+      truncateErrorMessage(multipleDoubleNewlines),
+      'Error: PHPMD command failed',
+      'Error with multiple double newlines should be truncated at first occurrence'
+    );
+  });
+
+  // Test for stderr message truncation
+  test('STDERR messages are truncated at first \\n\\n occurrence', async () => {
+    // Test stderr truncation similar to what we're doing in the error handler
+    const truncateStderr = (stderr: string): string => {
+      return stderr.split('\n\n')[0];
+    };
+
+    // Sample stderr outputs
+    const singleLineStderr = 'Command failed with exit code 1';
+    const multiLineStderr = 'Command failed with exit code 1\nAdditional error details';
+    const stderrWithDoubleNewline = 'Command failed with exit code 1\n\nDetailed error information';
+
+    // Test truncation
+    assert.strictEqual(
+      truncateStderr(singleLineStderr),
+      singleLineStderr,
+      'Single line stderr should remain unchanged'
+    );
+
+    assert.strictEqual(
+      truncateStderr(multiLineStderr),
+      multiLineStderr,
+      'Stderr with single newlines should remain unchanged'
+    );
+
+    assert.strictEqual(
+      truncateStderr(stderrWithDoubleNewline),
+      'Command failed with exit code 1',
+      'Stderr with double newline should be truncated at first occurrence'
+    );
+  });
+
+  // Test for raw output truncation
+  test('Raw output is truncated at first \\n\\n or limited to 200 characters', async () => {
+    // Test raw output truncation similar to what we do in processPhpmdOutput error handling
+    const truncateRawOutput = (output: string): string => {
+      const doubleCrlfPosition = output.indexOf('\n\n');
+      if (doubleCrlfPosition !== -1) {
+        return output.substring(0, doubleCrlfPosition);
+      }
+      return output.substring(0, Math.min(output.length, 200));
+    };
+
+    // Sample outputs
+    const shortOutput = 'Valid JSON output';
+    const longOutputNoNewlines = 'x'.repeat(300); // 300 characters with no newlines
+    const outputWithNewlines = 'First part of output\n\nSecond part that should be truncated';
+    const outputWithMultipleDoubleNewlines = 'Start\n\nMiddle\n\nEnd';
+
+    // Test truncation
+    assert.strictEqual(
+      truncateRawOutput(shortOutput),
+      shortOutput,
+      'Short output should remain unchanged'
+    );
+
+    assert.strictEqual(
+      truncateRawOutput(longOutputNoNewlines).length,
+      200,
+      'Long output without newlines should be truncated to 200 characters'
+    );
+
+    assert.strictEqual(
+      truncateRawOutput(outputWithNewlines),
+      'First part of output',
+      'Output with newlines should be truncated at first \\n\\n'
+    );
+
+    assert.strictEqual(
+      truncateRawOutput(outputWithMultipleDoubleNewlines),
+      'Start',
+      'Output with multiple double newlines should be truncated at first occurrence'
+    );
+  });
 });

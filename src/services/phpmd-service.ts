@@ -139,7 +139,17 @@ export class PhpmdService {
 
         // Check if it's a DDEV project
         if (!DdevUtils.isDdevProject(document)) {
-            vscode.window.showErrorMessage('This workspace is not a DDEV project. Please make sure: 1. You are in a DDEV project directory, 2. The .ddev/config.yaml file exists, 3. DDEV is running (use "ddev start")');
+            vscode.window.showErrorMessage(
+                'DDEV environment not detected',
+                {
+                    modal: false,
+                    detail: 'This extension requires a running DDEV environment. Please make sure:\n\n' +
+                            '1. You are in a DDEV project directory\n' +
+                            '2. The .ddev/config.yaml file exists\n' +
+                            '3. DDEV is running (use "ddev start" in terminal)\n\n' +
+                            'If DDEV is already running, try restarting it with "ddev restart".'
+                }
+            );
             return;
         }
 
@@ -161,9 +171,26 @@ export class PhpmdService {
 
             // Process output
             this.processPhpmdOutput(output, document);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error running PHPMD:', error);
-            vscode.window.showErrorMessage('Error running PHPMD. Make sure PHPMD is installed in your DDEV container.');
+
+            // Show a more detailed error message to the user
+            let errorMessage = error.message || String(error);
+
+            // Cut the message at first occurrence of \n\n
+            const doubleCrlfPosition = errorMessage.indexOf('\n\n');
+            if (doubleCrlfPosition !== -1) {
+                errorMessage = errorMessage.substring(0, doubleCrlfPosition);
+            }
+
+            const detailedMessage = error.stderr
+                ? `PHPMD Error: ${error.stderr.split('\n\n')[0]}`
+                : `Error running PHPMD: ${errorMessage}`;
+
+            vscode.window.showErrorMessage(
+                detailedMessage,
+                { modal: false, detail: 'Make sure PHPMD is installed in your DDEV container.' }
+            );
         }
     }
 
@@ -192,6 +219,9 @@ export class PhpmdService {
      * @param document Document that was analyzed
      */
     private processPhpmdOutput(output: string, document: vscode.TextDocument): void {
+        // Store original output for error reporting
+        const originalOutput = output;
+
         try {
             // Parse output
             const result = JSON.parse(output) as PhpmdResult;
@@ -215,9 +245,32 @@ export class PhpmdService {
             if (diagnostics.length > 0) {
                 this.diagnosticCollection.set(document.uri, diagnostics);
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error processing PHPMD output:', error);
-            vscode.window.showErrorMessage(`Error processing PHPMD output: ${error}`);
+
+            // Extract a readable error message
+            let errorMessage = error.message || String(error);
+
+            // Cut the message at first occurrence of \n\n
+            const doubleCrlfPosition = errorMessage.indexOf('\n\n');
+            if (doubleCrlfPosition !== -1) {
+                errorMessage = errorMessage.substring(0, doubleCrlfPosition);
+            }
+
+            // Show the raw output for debugging if it's available
+            let detail = 'There was a problem processing the PHPMD output.';
+            if (originalOutput) {
+                const shortenedOutput = originalOutput.indexOf('\n\n') !== -1
+                    ? originalOutput.substring(0, originalOutput.indexOf('\n\n'))
+                    : originalOutput.substring(0, 200);
+
+                detail += `\n\nRaw output:\n${shortenedOutput}${originalOutput.length > shortenedOutput.length ? '...' : ''}`;
+            }
+
+            vscode.window.showErrorMessage(
+                `Error processing PHPMD output: ${errorMessage}`,
+                { modal: false, detail: detail }
+            );
         }
     }
 
