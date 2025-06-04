@@ -88,10 +88,14 @@ export class DiagnosticUtils {
         diagnostic.source = 'phpmd';
 
         // Add code and additional info if available
-        diagnostic.code = violation.rule;
-        // Store the external URL in the tags - VS Code will highlight it as a link
         if (violation.externalInfoUrl) {
-            diagnostic.tags = [vscode.DiagnosticTag.Unnecessary];
+            // Use DiagnosticRelatedInformation to include a link to documentation
+            diagnostic.code = {
+                value: violation.rule,
+                target: vscode.Uri.parse(violation.externalInfoUrl)
+            };
+        } else {
+            diagnostic.code = violation.rule;
         }
 
         return diagnostic;

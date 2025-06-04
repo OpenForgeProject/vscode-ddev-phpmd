@@ -190,6 +190,17 @@ suite('Extension Test Suite', () => {
                 severity
               );
               diagnostic.source = 'phpmd';
+
+              // Add rule code and external info URL if available
+              if (violation.externalInfoUrl) {
+                diagnostic.code = {
+                  value: violation.rule,
+                  target: vscode.Uri.parse(violation.externalInfoUrl)
+                };
+              } else {
+                diagnostic.code = violation.rule;
+              }
+
               diagnostics.push(diagnostic);
             }
           }
@@ -217,5 +228,103 @@ suite('Extension Test Suite', () => {
     assert.strictEqual(diagnostics[1].range.start.line, 19); // 20-1 (0-based)
     assert.strictEqual(diagnostics[1].message.includes('ShortVariable'), true);
     assert.strictEqual(diagnostics[1].severity, vscode.DiagnosticSeverity.Error);
+  });
+
+  // Test for external info URL in diagnostics
+  test('Diagnostics include external info URL when available', async () => {
+    // Define the same function as in the previous test
+    const processPhpmdResults = (output: string): vscode.Diagnostic[] => {
+      try {
+        const results = JSON.parse(output);
+        const diagnostics: vscode.Diagnostic[] = [];
+
+        if (results && results.files && results.files.length > 0) {
+          for (const file of results.files) {
+            for (const violation of file.violations) {
+              const lineNum = violation.beginLine - 1; // Convert to 0-based
+              const range = new vscode.Range(
+                new vscode.Position(lineNum, 0),
+                new vscode.Position(lineNum, Number.MAX_VALUE)
+              );
+
+              // Map the priority to severity
+              let severity: vscode.DiagnosticSeverity;
+              switch (violation.priority) {
+                case 1:
+                  severity = vscode.DiagnosticSeverity.Error;
+                  break;
+                case 2:
+                case 3:
+                  severity = vscode.DiagnosticSeverity.Warning;
+                  break;
+                default:
+                  severity = vscode.DiagnosticSeverity.Information;
+              }
+
+              const diagnostic = new vscode.Diagnostic(
+                range,
+                `${violation.description} (${violation.rule})`,
+                severity
+              );
+              diagnostic.source = 'phpmd';
+
+              // Add rule code and external info URL if available
+              if (violation.externalInfoUrl) {
+                diagnostic.code = {
+                  value: violation.rule,
+                  target: vscode.Uri.parse(violation.externalInfoUrl)
+                };
+              } else {
+                diagnostic.code = violation.rule;
+              }
+
+              diagnostics.push(diagnostic);
+            }
+          }
+        }
+
+        return diagnostics;
+      } catch (error) {
+        console.error('Error processing PHPMD output:', error);
+        throw error;
+      }
+    };
+
+    // Process sample output
+    const diagnostics = processPhpmdResults(SAMPLE_PHPMD_OUTPUT);
+
+    // Check that the first diagnostic has an external info URL
+    assert.ok(diagnostics[0].code, 'Diagnostic should have a code property');
+
+    // When externalInfoUrl is provided, code should be an object with target
+    if (typeof diagnostics[0].code === 'object') {
+      assert.strictEqual(
+        (diagnostics[0].code as any).value,
+        'ExcessiveParameterList',
+        'Code value should match the rule name'
+      );
+      assert.ok(
+        (diagnostics[0].code as any).target instanceof vscode.Uri,
+        'Code target should be a VS Code URI'
+      );
+      assert.strictEqual(
+        (diagnostics[0].code as any).target.toString(),
+        'https://phpmd.org/rules/codesize.html#excessiveparameterlist',
+        'URI should match the external info URL'
+      );
+    } else {
+      assert.fail('Code should be an object with target property when externalInfoUrl is available');
+    }
+
+    // Ensure the second diagnostic also has the correct code
+    if (typeof diagnostics[1].code === 'object') {
+      assert.strictEqual((diagnostics[1].code as any).value, 'ShortVariable');
+      assert.strictEqual(
+        (diagnostics[1].code as any).target.toString(),
+        'https://phpmd.org/rules/naming.html#shortvariable'
+      );
+    } else {
+      assert.fail('Second diagnostic should also have code object with target');
+    }
   });
 });
