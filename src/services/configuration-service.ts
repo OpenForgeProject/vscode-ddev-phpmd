@@ -18,30 +18,25 @@
  */
 
 import * as vscode from 'vscode';
-import { PhpmdService } from './services/phpmd-service';
-
-// Global service instance
-let phpmdService: PhpmdService | undefined;
+import { DEFAULT_CONFIG, PhpmdConfig } from '../models/configuration';
 
 /**
- * Activate the extension
- *
- * @param context VS Code extension context
+ * Service for managing the extension configuration
  */
-export function activate(context: vscode.ExtensionContext) {
-    console.log('DDEV PHPMD extension is now active!');
-
-    // Initialize the PHPMD service
-    phpmdService = new PhpmdService(context);
-}
-
-/**
- * Deactivate the extension
- */
-export function deactivate() {
-    // Clean up resources
-    if (phpmdService) {
-        phpmdService.dispose();
-        phpmdService = undefined;
+export class ConfigurationService {
+    /**
+     * Get the current configuration
+     *
+     * @returns The current configuration
+     */
+    public static getConfig(): PhpmdConfig {
+        const config = vscode.workspace.getConfiguration('ddev-phpmd');
+        return {
+            enable: config.get('enable', DEFAULT_CONFIG.enable),
+            validateOn: config.get('validateOn', DEFAULT_CONFIG.validateOn),
+            rulesets: config.get('rulesets', DEFAULT_CONFIG.rulesets),
+            minSeverity: config.get('minSeverity', DEFAULT_CONFIG.minSeverity),
+            configPath: config.get('configPath', DEFAULT_CONFIG.configPath)
+        };
     }
 }

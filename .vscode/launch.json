@@ -1,3 +1,7 @@
+// This file is part of the vscode-ddev-phpmd extension.
+// © OpenForgeProject
+// Licensed under the GNU General Public License v3.0 (GPL-3.0)
+//
 // A launch configuration that compiles the extension and then opens it inside a new window
 // Use IntelliSense to learn about possible attributes.
 // Hover to view descriptions of existing attributes.

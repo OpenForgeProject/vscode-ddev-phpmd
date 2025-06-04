@@ -1,3 +1,7 @@
+// This file is part of the vscode-ddev-phpmd extension.
+// © OpenForgeProject
+// Licensed under the GNU General Public License v3.0 (GPL-3.0)
+//
 // Place your settings in this file to overwrite default and user settings.
 {
     "files.exclude": {

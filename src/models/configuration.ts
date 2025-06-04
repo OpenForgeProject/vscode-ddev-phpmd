@@ -17,31 +17,33 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-import * as vscode from 'vscode';
-import { PhpmdService } from './services/phpmd-service';
-
-// Global service instance
-let phpmdService: PhpmdService | undefined;
-
 /**
- * Activate the extension
- *
- * @param context VS Code extension context
+ * Interface for the extension configuration
  */
-export function activate(context: vscode.ExtensionContext) {
-    console.log('DDEV PHPMD extension is now active!');
+export interface PhpmdConfig {
+    /** Whether the extension is enabled */
+    enable: boolean;
 
-    // Initialize the PHPMD service
-    phpmdService = new PhpmdService(context);
+    /** When to validate: 'save' or 'type' */
+    validateOn: string;
+
+    /** PHPMD ruleset IDs to use */
+    rulesets: string[];
+
+    /** Minimum severity level for reported issues */
+    minSeverity: string;
+
+    /** Path to custom PHPMD ruleset XML file (relative to workspace root) */
+    configPath: string;
 }
 
 /**
- * Deactivate the extension
+ * Default configuration values
  */
-export function deactivate() {
-    // Clean up resources
-    if (phpmdService) {
-        phpmdService.dispose();
-        phpmdService = undefined;
-    }
-}
+export const DEFAULT_CONFIG: PhpmdConfig = {
+    enable: true,
+    validateOn: 'save',
+    rulesets: ['cleancode', 'codesize', 'controversial', 'design', 'naming', 'unusedcode'],
+    minSeverity: 'warning',
+    configPath: ''
+};

@@ -1,3 +1,7 @@
+# This file is part of the vscode-ddev-phpmd extension.
+# © OpenForgeProject
+# Licensed under the GNU General Public License v3.0 (GPL-3.0)
+
 name: Build and Publish
 
 on:
@@ -5,6 +9,10 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: read
 
 jobs:
   build:

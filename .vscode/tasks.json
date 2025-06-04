@@ -1,3 +1,7 @@
+// This file is part of the vscode-ddev-phpmd extension.
+// © OpenForgeProject
+// Licensed under the GNU General Public License v3.0 (GPL-3.0)
+//
 // See https://go.microsoft.com/fwlink/?LinkId=733558
 // for the documentation about the tasks.json format
 {
