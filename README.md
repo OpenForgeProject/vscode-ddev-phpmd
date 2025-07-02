@@ -18,6 +18,8 @@ This extension integrates [PHP Mess Detector (PHPMD)](https://phpmd.org/) with V
 
 ## Installation
 
+Install the extension from the [VS Code Marketplace](https://marketplace.visualstudio.com/items?itemName=OpenForgeProject.vscode-ddev-phpmd) or search for "DDEV PHPMD" in VS Code's extension panel.
+
 Install [PHPMD](https://github.com/phpmd/phpmd) in your DDEV container:
 ```bash
 ddev composer require --dev phpmd/phpmd
