@@ -16,6 +16,15 @@
   "categories": [
     "Linters"
   ],
+  "keywords": [
+    "php",
+    "phpmd",
+    "ddev",
+    "linter",
+    "quality",
+    "static-analysis",
+    "mess-detector"
+  ],
   "activationEvents": [
     "onLanguage:php",
     "workspaceContains:**/.ddev/config.yaml"
