@@ -5,10 +5,12 @@ This extension integrates [PHP Mess Detector (PHPMD)](https://phpmd.org/) with V
 ## Features
 
 - Real-time PHP code analysis using PHPMD through DDEV
+- **Easy enable/disable functionality per project**
 - Configurable validation triggers (on save or on type)
 - Customizable PHPMD rulesets and severity levels
 - Automatic DDEV project detection
 - Problems panel integration with clickable issue links
+- Status bar indicator showing extension state
 
 ## Requirements
 
@@ -32,11 +34,22 @@ ddev composer require --dev phpmd/phpmd
 3. Issues appear in the Problems panel and are highlighted in the editor
 4. Click on issues to view detailed information and external documentation
 
+### Enable/Disable Extension
+
+You can easily enable or disable the extension per project:
+
+- **Status Bar**: Click the status bar indicator to analyze files (when enabled) or enable the extension (when disabled)
+- **Command Palette** (`Cmd+Shift+P` / `Ctrl+Shift+P`):
+  - `DDEV PHPMD: Enable` - Enable the extension
+  - `DDEV PHPMD: Disable` - Disable the extension
+  - `DDEV PHPMD: Toggle Enable/Disable` - Toggle the current state
+- **Settings**: Change `ddev-phpmd.enable` in your workspace settings
+
 ## Configuration
 
 Key settings in VS Code preferences:
 
-- `ddev-phpmd.enable`: Enable/disable the extension
+- `ddev-phpmd.enable`: Enable/disable the extension (default: `true`)
 - `ddev-phpmd.validateOn`: When to validate (`"save"` or `"type"`)
 - `ddev-phpmd.rulesets`: PHPMD rulesets to use
 - `ddev-phpmd.configPath`: Path to custom PHPMD configuration file

@@ -38,7 +38,7 @@
         "ddev-phpmd.enable": {
           "type": "boolean",
           "default": true,
-          "description": "Enable/disable PHPMD integration"
+          "description": "Enable/disable PHPMD integration. When disabled, no analysis will be performed and diagnostics will be cleared."
         },
         "ddev-phpmd.validateOn": {
           "type": "string",
@@ -85,6 +85,18 @@
       {
         "command": "ddev-phpmd.analyzeCurrentFile",
         "title": "DDEV PHPMD: Analyze Current File"
+      },
+      {
+        "command": "ddev-phpmd.enable",
+        "title": "DDEV PHPMD: Enable"
+      },
+      {
+        "command": "ddev-phpmd.disable",
+        "title": "DDEV PHPMD: Disable"
+      },
+      {
+        "command": "ddev-phpmd.toggle",
+        "title": "DDEV PHPMD: Toggle Enable/Disable"
       }
     ]
   },

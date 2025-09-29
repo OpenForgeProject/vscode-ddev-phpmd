@@ -71,11 +71,12 @@ export class PhpmdService extends BasePhpToolService {
     }
 
     /**
-     * Process the PHPMD output and update diagnostics
-     *
-     * @param output PHPMD output
-     * @param document Document that was analyzed
+     * Handle configuration changes specific to PHPMD
      */
+    protected onConfigurationChangedInternal(event: vscode.ConfigurationChangeEvent): void {
+        // Reload configuration when it changes
+        this.config = ConfigurationService.getConfig();
+    }
     protected processToolOutput(output: string, document: vscode.TextDocument): void {
         // Store original output for error reporting
         const originalOutput = output;

@@ -49,7 +49,6 @@ export abstract class BasePhpToolService {
         context.subscriptions.push(this.diagnosticCollection);
 
         this.registerEventHandlers();
-        this.registerCommands();
     }
 
     /**
@@ -84,26 +83,29 @@ export abstract class BasePhpToolService {
     }
 
     /**
-     * Register commands for the tool
-     */
-    private registerCommands(): void {
-        // Register command for manual analysis
-        this.context.subscriptions.push(
-            vscode.commands.registerCommand(
-                `ddev-${this.toolName}.analyzeCurrentFile`,
-                this.analyzeCurrentFile,
-                this
-            )
-        );
-    }
-
-    /**
      * Handle configuration changes
      */
     private onConfigurationChanged(event: vscode.ConfigurationChangeEvent): void {
         if (event.affectsConfiguration(`ddev-${this.toolName}`)) {
-            // Subclasses should override this if they need to react to config changes
+            const config = this.getConfig();
+
+            // Clear diagnostics if the tool is disabled
+            if (!config.enable) {
+                this.diagnosticCollection.clear();
+            }
+
+            // Allow subclasses to react to config changes
+            this.onConfigurationChangedInternal(event);
         }
+    }
+
+    /**
+     * Hook for subclasses to handle configuration changes
+     * Override this method in subclasses if needed
+     */
+    protected onConfigurationChangedInternal(event: vscode.ConfigurationChangeEvent): void {
+        // Default implementation does nothing
+        // Subclasses can override this method
     }
 
     /**
@@ -138,7 +140,7 @@ export abstract class BasePhpToolService {
     /**
      * Analyze the current file
      */
-    private analyzeCurrentFile(): void {
+    public analyzeCurrentFile(): void {
         const editor = vscode.window.activeTextEditor;
         if (editor) {
             this.analyzeFile(editor.document);
