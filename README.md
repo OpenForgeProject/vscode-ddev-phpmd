@@ -40,6 +40,7 @@ You can easily enable or disable the extension per project:
 
 - **Status Bar Indicators**:
   - 🚫 `PHPMD` (disabled) - Extension is disabled, click to enable
+  - ⚠️ `PHPMD` (not available) - DDEV/PHPMD not available, check `ddev status`
   - ✅ `PHPMD` (active/clean) - Extension is active, no issues in current file
   - ❌ `PHPMD` (active/issues) - Extension is active, current file has PHPMD issues
 - **Command Palette** (`Cmd+Shift+P` / `Ctrl+Shift+P`):

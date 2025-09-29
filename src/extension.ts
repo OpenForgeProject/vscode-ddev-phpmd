@@ -20,6 +20,7 @@
 import * as vscode from 'vscode';
 import { PhpmdService } from './services/phpmd-service';
 import { DdevUtils } from './shared/utils/ddev-utils';
+import type { DdevValidationResult } from './shared/utils/ddev-utils';
 import { ConfigurationService } from './services/configuration-service';
 
 // Global service instance
@@ -31,6 +32,65 @@ let statusBarItem: vscode.StatusBarItem | undefined;
 // Track current file diagnostic status
 let currentFileHasIssues = false;
 
+// Track DDEV service status
+let ddevServiceStatus: 'disabled' | 'ready' | 'has-issues' | 'not-available' = 'disabled';
+
+// Extension context for reinitialization
+let extensionContext: vscode.ExtensionContext | undefined;
+
+/**
+ * Get the extension context
+ */
+function getExtensionContext(): vscode.ExtensionContext {
+    if (!extensionContext) {
+        throw new Error('Extension context not available');
+    }
+    return extensionContext;
+}
+
+/**
+ * Shows standardized error message for DDEV-related issues with appropriate action buttons
+ */
+function showDdevError(validationResult: DdevValidationResult): void {
+    const message = validationResult.userMessage || 'DDEV configuration issue';
+
+    // Determine appropriate buttons based on error type
+    const buttons: string[] = [];
+
+    if (message.includes('appears to be stopped') ||
+        message.includes('not currently running')) {
+        buttons.push("Start DDEV");
+    }
+
+    buttons.push("Disable for this project");
+
+    vscode.window.showWarningMessage(message, ...buttons).then(selection => {
+        if (selection === "Start DDEV") {
+            // Get the current workspace folder
+            const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
+            if (workspaceFolder) {
+                vscode.window.withProgress({
+                    location: vscode.ProgressLocation.Notification,
+                    title: "Starting DDEV...",
+                    cancellable: false
+                }, async () => {
+                    try {
+                        await vscode.commands.executeCommand('workbench.action.terminal.new');
+                        await vscode.commands.executeCommand('workbench.action.terminal.sendSequence', {
+                            text: `cd "${workspaceFolder.uri.fsPath}" && ddev start\n`
+                        });
+                        vscode.window.showInformationMessage("DDEV start command sent to terminal");
+                    } catch (error) {
+                        vscode.window.showErrorMessage("Failed to start DDEV: " + error);
+                    }
+                });
+            }
+        } else if (selection === "Disable for this project") {
+            vscode.commands.executeCommand('ddev-phpmd.disable');
+        }
+    });
+}
+
 /**
  * Analyze the current file if the service is available and enabled
  */
@@ -41,14 +101,64 @@ function analyzeCurrentFile() {
         return;
     }
 
+    // Try to initialize service if not available
     if (!phpmdService) {
-        vscode.window.showWarningMessage('PHPMD service is not available. Please check your DDEV configuration.');
+        const workspaceFolders = vscode.workspace.workspaceFolders;
+        if (workspaceFolders && workspaceFolders.length > 0) {
+            console.log('Attempting to reinitialize PHPMD service...');
+
+            const validationResult = DdevUtils.validateDdevTool('phpmd', workspaceFolders[0].uri.fsPath);
+            if (!validationResult.isValid) {
+                showDdevError(validationResult);
+                return;
+            }
+
+            // If validation passed, try to initialize service
+            const success = initializeService(getExtensionContext(), workspaceFolders[0], true);
+            if (!success) {
+                return;
+            }
+        } else {
+            vscode.window.showWarningMessage('No workspace folder found.');
+            return;
+        }
+    }
+
+    // Service should be available now
+    if (phpmdService) {
+        phpmdService.analyzeCurrentFile();
+    }
+}
+
+/**
+ * Update the DDEV service status
+ */
+function updateDdevServiceStatus() {
+    const config = ConfigurationService.getConfig();
+
+    if (!config.enable) {
+        ddevServiceStatus = 'disabled';
         return;
     }
 
-    phpmdService.analyzeCurrentFile();
-}
+    // Check if we're in a workspace
+    const workspaceFolders = vscode.workspace.workspaceFolders;
+    if (!workspaceFolders || workspaceFolders.length === 0) {
+        ddevServiceStatus = 'not-available';
+        return;
+    }
 
+    const workspaceFolder = workspaceFolders[0];
+    const validationResult = DdevUtils.validateDdevTool('phpmd', workspaceFolder.uri.fsPath);
+
+    if (!validationResult.isValid) {
+        ddevServiceStatus = 'not-available';
+    } else if (currentFileHasIssues) {
+        ddevServiceStatus = 'has-issues';
+    } else {
+        ddevServiceStatus = 'ready';
+    }
+}
 /**
  * Check if the current active file has PHPMD issues
  */
@@ -56,6 +166,7 @@ function checkCurrentFileStatus() {
     const editor = vscode.window.activeTextEditor;
     if (!editor || !phpmdService) {
         currentFileHasIssues = false;
+        updateDdevServiceStatus();
         updateStatusBar();
         return;
     }
@@ -63,6 +174,7 @@ function checkCurrentFileStatus() {
     const document = editor.document;
     if (document.languageId !== 'php') {
         currentFileHasIssues = false;
+        updateDdevServiceStatus();
         updateStatusBar();
         return;
     }
@@ -74,6 +186,7 @@ function checkCurrentFileStatus() {
     );
 
     currentFileHasIssues = phpmdDiagnostics.length > 0;
+    updateDdevServiceStatus();
     updateStatusBar();
 }
 
@@ -85,50 +198,59 @@ function updateStatusBar() {
         return;
     }
 
-    const config = ConfigurationService.getConfig();
-    if (!config.enable) {
-        // Extension is disabled
-        statusBarItem.text = "$(circle-slash) PHPMD";
-        statusBarItem.tooltip = "PHPMD is disabled. Click to enable.";
-        statusBarItem.command = "ddev-phpmd.enable";
-        statusBarItem.color = new vscode.ThemeColor('statusBarItem.warningForeground');
-    } else if (currentFileHasIssues) {
-        // Extension is enabled and current file has issues
-        statusBarItem.text = "$(error) PHPMD";
-        statusBarItem.tooltip = "PHPMD found issues in current file. Click to analyze again.";
-        statusBarItem.command = "ddev-phpmd.analyzeCurrentFile";
-        statusBarItem.color = new vscode.ThemeColor('statusBarItem.errorForeground');
-    } else {
-        // Extension is enabled and current file is clean (or not analyzed yet)
-        statusBarItem.text = "$(check) PHPMD";
-        statusBarItem.tooltip = "PHPMD is active. Click to analyze current file.";
-        statusBarItem.command = "ddev-phpmd.analyzeCurrentFile";
-        statusBarItem.color = new vscode.ThemeColor('statusBarItem.prominentForeground');
+    switch (ddevServiceStatus) {
+        case 'disabled':
+            // Extension is disabled
+            statusBarItem.text = "$(circle-slash) PHPMD";
+            statusBarItem.tooltip = "PHPMD is disabled. Click to enable.";
+            statusBarItem.command = "ddev-phpmd.enable";
+            statusBarItem.color = new vscode.ThemeColor('statusBarItem.warningForeground');
+            break;
+
+        case 'not-available':
+            // DDEV not running or tool not installed
+            statusBarItem.text = "$(warning) PHPMD";
+            statusBarItem.tooltip = "PHPMD service is not available. Click to retry or check DDEV status.";
+            statusBarItem.command = "ddev-phpmd.analyzeCurrentFile";
+            statusBarItem.color = new vscode.ThemeColor('statusBarItem.errorForeground');
+            break;
+
+        case 'has-issues':
+            // Extension is enabled and current file has issues
+            statusBarItem.text = "$(error) PHPMD";
+            statusBarItem.tooltip = "PHPMD found issues in current file. Click to analyze again.";
+            statusBarItem.command = "ddev-phpmd.analyzeCurrentFile";
+            statusBarItem.color = new vscode.ThemeColor('statusBarItem.errorForeground');
+            break;
+
+        case 'ready':
+        default:
+            // Extension is enabled and current file is clean (or not analyzed yet)
+            statusBarItem.text = "$(check) PHPMD";
+            statusBarItem.tooltip = "PHPMD is active. Click to analyze current file.";
+            statusBarItem.command = "ddev-phpmd.analyzeCurrentFile";
+            statusBarItem.color = new vscode.ThemeColor('statusBarItem.prominentForeground');
+            break;
     }
 }
 
 /**
  * Initialize or reinitialize the PHPMD service based on configuration
  */
-function initializeService(context: vscode.ExtensionContext, workspaceFolder: vscode.WorkspaceFolder) {
+function initializeService(context: vscode.ExtensionContext, workspaceFolder: vscode.WorkspaceFolder, silent: boolean = false) {
     const config = ConfigurationService.getConfig();
 
     if (config.enable) {
         if (!phpmdService) {
-            // Validate DDEV project and PHPMD installation only when enabling
             const validationResult = DdevUtils.validateDdevTool('phpmd', workspaceFolder.uri.fsPath);
 
             if (!validationResult.isValid) {
-                // Show appropriate error message based on the validation result
-                if (validationResult.userMessage && validationResult.userDetail) {
-                    vscode.window.showErrorMessage(
-                        validationResult.userMessage,
-                        {
-                            modal: false,
-                            detail: validationResult.userDetail
-                        }
-                    );
+                // Only show error if not silent (e.g., during initial activation)
+                if (!silent) {
+                    showDdevError(validationResult);
                 }
+                updateDdevServiceStatus();
+                updateStatusBar();
                 return false;
             }
 
@@ -143,6 +265,8 @@ function initializeService(context: vscode.ExtensionContext, workspaceFolder: vs
         }
     }
 
+    updateDdevServiceStatus();
+    updateStatusBar();
     return true;
 }
 
@@ -153,6 +277,9 @@ function initializeService(context: vscode.ExtensionContext, workspaceFolder: vs
  */
 export function activate(context: vscode.ExtensionContext) {
     console.log('DDEV PHPMD extension is now active!');
+
+    // Store extension context for later use
+    extensionContext = context;
 
     // Check if we're in a workspace
     const workspaceFolders = vscode.workspace.workspaceFolders;
@@ -169,11 +296,22 @@ export function activate(context: vscode.ExtensionContext) {
     statusBarItem.show();
     context.subscriptions.push(statusBarItem);
 
-    // Update status bar initially
-    updateStatusBar();
-
     // Initialize service based on configuration
     initializeService(context, workspaceFolder);
+
+    // Set up periodic check for DDEV recovery (every 30 seconds)
+    const periodicCheck = setInterval(() => {
+        const config = ConfigurationService.getConfig();
+        if (config.enable && !phpmdService) {
+            console.log('Periodic check: Attempting to recover PHPMD service...');
+            initializeService(context, workspaceFolder, true); // Silent retry
+        }
+    }, 30000);
+
+    // Clean up interval on extension deactivation
+    context.subscriptions.push({
+        dispose: () => clearInterval(periodicCheck)
+    });
 
     // Register commands
     context.subscriptions.push(
@@ -203,7 +341,6 @@ export function activate(context: vscode.ExtensionContext) {
     context.subscriptions.push(
         vscode.workspace.onDidChangeConfiguration((event) => {
             if (event.affectsConfiguration('ddev-phpmd.enable')) {
-                updateStatusBar();
                 initializeService(context, workspaceFolder);
             }
         })

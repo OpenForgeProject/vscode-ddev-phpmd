@@ -29,7 +29,6 @@ export interface DdevValidationResult {
     errorType?: 'no-workspace' | 'no-ddev-project' | 'ddev-not-running' | 'tool-not-found' | 'unknown';
     errorMessage?: string;
     userMessage?: string;
-    userDetail?: string;
 }
 
 /**
@@ -102,18 +101,16 @@ export class DdevUtils {
      * @returns Validation result with detailed information
      */
     public static validateDdevTool(toolName: string, workspacePath: string): DdevValidationResult {
-        // Check if DDEV project exists
+        // First check if this is a DDEV project
         if (!this.hasDdevProject(workspacePath)) {
             return {
                 isValid: false,
                 errorType: 'no-ddev-project',
-                userMessage: 'No DDEV project found',
-                userDetail: 'This extension requires a DDEV project. ' +
-                           'Please make sure you are in a DDEV project directory with a .ddev/config.yaml file.'
+                userMessage: 'No DDEV project found'
             };
         }
 
-        // Check DDEV and tool in one step by trying to run the tool
+        // Try to run the tool
         try {
             execSync(`ddev exec ${toolName} --version`, {
                 cwd: workspacePath,
@@ -124,53 +121,36 @@ export class DdevUtils {
                 isValid: true
             };
         } catch (error: any) {
-            // Get the actual error message
-            let errorMessage = '';
+            // Try to get more specific error information
+            let errorDetails = '';
             try {
                 execSync(`ddev exec ${toolName} --version`, {
                     cwd: workspacePath,
                     encoding: 'utf-8'
                 });
             } catch (execError: any) {
-                errorMessage = execError.message || execError.stderr || '';
+                errorDetails = execError.message || execError.stderr || '';
             }
 
-            // Check if error indicates DDEV is not running
-            if (errorMessage.includes('Project is not currently running') ||
-                errorMessage.includes('ddev start')) {
-                return {
-                    isValid: false,
-                    errorType: 'ddev-not-running',
-                    errorMessage: errorMessage,
-                    userMessage: 'DDEV is not running',
-                    userDetail: 'This extension requires DDEV to be running. ' +
-                               'Please start DDEV by running:\n\n' +
-                               'ddev start'
-                };
+            // Build concise but informative error message
+            let userMessage = `${toolName.toUpperCase()} not available`;
+
+            // Add specific hints based on error content
+            if (errorDetails.includes('not currently running') ||
+                errorDetails.includes('ddev start') ||
+                errorDetails.includes('No such container')) {
+                userMessage = `${toolName.toUpperCase()} not available - DDEV appears to be stopped`;
+            } else if (errorDetails.includes('not found') ||
+                       errorDetails.includes('command not found')) {
+                userMessage = `${toolName.toUpperCase()} not available - not installed in container`;
+            } else {
+                userMessage = `${toolName.toUpperCase()} not available - check DDEV status`;
             }
 
-            // Check if error indicates tool is not installed
-            if (errorMessage.includes(`${toolName}: not found`) ||
-                errorMessage.includes('command not found')) {
-                return {
-                    isValid: false,
-                    errorType: 'tool-not-found',
-                    errorMessage: errorMessage,
-                    userMessage: `${toolName.toUpperCase()} is not installed`,
-                    userDetail: `This extension requires ${toolName.toUpperCase()} to be installed in your DDEV container. ` +
-                               'Please install it by running:\n\n' +
-                               `ddev exec composer require --dev ${this.getComposerPackageName(toolName)}\n\n` +
-                               'The extension will be disabled until the tool is installed.'
-                };
-            }
-
-            // For any other error, return generic message
             return {
                 isValid: false,
                 errorType: 'unknown',
-                errorMessage: errorMessage,
-                userMessage: `Unable to verify ${toolName.toUpperCase()} installation`,
-                userDetail: 'Error: ' + errorMessage.split('\n\n')[0]
+                userMessage: userMessage
             };
         }
     }

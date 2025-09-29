@@ -159,38 +159,32 @@ export abstract class BasePhpToolService {
         // Clear existing diagnostics
         this.diagnosticCollection.delete(document.uri);
 
-        // Check if it's a DDEV project
-        if (!DdevUtils.isDdevProject(document)) {
-            vscode.window.showErrorMessage(
-                'DDEV environment not detected',
-                {
-                    modal: false,
-                    detail: `This extension requires a running DDEV environment. Please make sure:\n\n` +
-                            '1. You are in a DDEV project directory\n' +
-                            '2. The .ddev/config.yaml file exists\n' +
-                            '3. DDEV is running (use "ddev start" in terminal)\n\n' +
-                            'If DDEV is already running, try restarting it with "ddev restart".'
-                }
-            );
+        // Get workspace folder for the current file
+        const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
+        if (!workspaceFolder) {
+            vscode.window.showErrorMessage('No workspace folder found for the current file');
             return;
         }
 
-        try {
-            // Get workspace folder for the current file
-            const workspaceFolder = vscode.workspace.getWorkspaceFolder(document.uri);
-            if (!workspaceFolder) {
-                throw new Error('No workspace folder found for the current file');
+        // Validate DDEV project and tool availability
+        const validationResult = DdevUtils.validateDdevTool(this.toolName, workspaceFolder.uri.fsPath);
+        if (!validationResult.isValid) {
+            // Show specific error message based on the validation result
+            if (validationResult.userMessage) {
+                vscode.window.showErrorMessage(validationResult.userMessage);
             }
+            return;
+        }
 
-            // Convert absolute path to relative path from workspace root
-            const relativePath = vscode.workspace.asRelativePath(document.uri);
+        // Convert absolute path to relative path from workspace root
+        const relativePath = vscode.workspace.asRelativePath(document.uri);
 
-            // Build tool command
-            const toolCommand = this.buildToolCommand(relativePath);
+        // Build tool command
+        const toolCommand = this.buildToolCommand(relativePath);
 
-            // Execute tool command
+        // Execute tool command
+        try {
             const output = DdevUtils.execDdev(toolCommand, workspaceFolder.uri.fsPath);
-
             // Process output
             this.processToolOutput(output, document);
         } catch (error: any) {
