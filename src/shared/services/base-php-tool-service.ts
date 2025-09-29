@@ -31,6 +31,12 @@ export interface PhpToolConfig {
 }
 
 /**
+ * Constants for timing and configuration
+ */
+const VALIDATION_DEBOUNCE_MS = 500;
+const CONFIG_SECTION_PREFIX = 'ddev-';
+
+/**
  * Base class for PHP quality tool services that work with DDEV
  *
  * This class will be part of the @openforgeproject/vscode-ddev-utils package
@@ -86,7 +92,8 @@ export abstract class BasePhpToolService {
      * Handle configuration changes
      */
     private onConfigurationChanged(event: vscode.ConfigurationChangeEvent): void {
-        if (event.affectsConfiguration(`ddev-${this.toolName}`)) {
+        const configSection = `${CONFIG_SECTION_PREFIX}${this.toolName}`;
+        if (event.affectsConfiguration(configSection)) {
             const config = this.getConfig();
 
             // Clear diagnostics if the tool is disabled
@@ -134,7 +141,7 @@ export abstract class BasePhpToolService {
 
         this.documentValidation = setTimeout(() => {
             this.analyzeFile(event.document);
-        }, 500);
+        }, VALIDATION_DEBOUNCE_MS);
     }
 
     /**
