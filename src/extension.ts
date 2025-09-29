@@ -28,6 +28,9 @@ let phpmdService: PhpmdService | undefined;
 // Status bar item
 let statusBarItem: vscode.StatusBarItem | undefined;
 
+// Track current file diagnostic status
+let currentFileHasIssues = false;
+
 /**
  * Analyze the current file if the service is available and enabled
  */
@@ -47,7 +50,35 @@ function analyzeCurrentFile() {
 }
 
 /**
- * Update status bar based on current configuration
+ * Check if the current active file has PHPMD issues
+ */
+function checkCurrentFileStatus() {
+    const editor = vscode.window.activeTextEditor;
+    if (!editor || !phpmdService) {
+        currentFileHasIssues = false;
+        updateStatusBar();
+        return;
+    }
+
+    const document = editor.document;
+    if (document.languageId !== 'php') {
+        currentFileHasIssues = false;
+        updateStatusBar();
+        return;
+    }
+
+    // Get diagnostics for the current file
+    const diagnostics = vscode.languages.getDiagnostics(document.uri);
+    const phpmdDiagnostics = diagnostics.filter(diagnostic =>
+        diagnostic.source === 'phpmd'
+    );
+
+    currentFileHasIssues = phpmdDiagnostics.length > 0;
+    updateStatusBar();
+}
+
+/**
+ * Update status bar based on current configuration and file status and file status
  */
 function updateStatusBar() {
     if (!statusBarItem) {
@@ -55,16 +86,24 @@ function updateStatusBar() {
     }
 
     const config = ConfigurationService.getConfig();
-    if (config.enable) {
-        statusBarItem.text = "$(check) PHPMD";
-        statusBarItem.tooltip = "PHPMD is enabled. Click to analyze current file.";
-        statusBarItem.command = "ddev-phpmd.analyzeCurrentFile";
-        statusBarItem.color = undefined;
-    } else {
-        statusBarItem.text = "$(x) PHPMD";
+    if (!config.enable) {
+        // Extension is disabled
+        statusBarItem.text = "$(circle-slash) PHPMD";
         statusBarItem.tooltip = "PHPMD is disabled. Click to enable.";
         statusBarItem.command = "ddev-phpmd.enable";
         statusBarItem.color = new vscode.ThemeColor('statusBarItem.warningForeground');
+    } else if (currentFileHasIssues) {
+        // Extension is enabled and current file has issues
+        statusBarItem.text = "$(error) PHPMD";
+        statusBarItem.tooltip = "PHPMD found issues in current file. Click to analyze again.";
+        statusBarItem.command = "ddev-phpmd.analyzeCurrentFile";
+        statusBarItem.color = new vscode.ThemeColor('statusBarItem.errorForeground');
+    } else {
+        // Extension is enabled and current file is clean (or not analyzed yet)
+        statusBarItem.text = "$(check) PHPMD";
+        statusBarItem.tooltip = "PHPMD is active. Click to analyze current file.";
+        statusBarItem.command = "ddev-phpmd.analyzeCurrentFile";
+        statusBarItem.color = new vscode.ThemeColor('statusBarItem.prominentForeground');
     }
 }
 
@@ -169,6 +208,26 @@ export function activate(context: vscode.ExtensionContext) {
             }
         })
     );
+
+    // Listen for active editor changes to update status bar
+    context.subscriptions.push(
+        vscode.window.onDidChangeActiveTextEditor(() => {
+            checkCurrentFileStatus();
+        })
+    );
+
+    // Listen for diagnostic changes to update status bar
+    context.subscriptions.push(
+        vscode.languages.onDidChangeDiagnostics((event) => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor && event.uris.some(uri => uri.toString() === editor.document.uri.toString())) {
+                checkCurrentFileStatus();
+            }
+        })
+    );
+
+    // Initial check of current file status
+    checkCurrentFileStatus();
 }
 
 /**

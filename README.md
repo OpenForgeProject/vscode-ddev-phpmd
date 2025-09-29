@@ -38,7 +38,10 @@ ddev composer require --dev phpmd/phpmd
 
 You can easily enable or disable the extension per project:
 
-- **Status Bar**: Click the status bar indicator to analyze files (when enabled) or enable the extension (when disabled)
+- **Status Bar Indicators**:
+  - 🚫 `PHPMD` (disabled) - Extension is disabled, click to enable
+  - ✅ `PHPMD` (active/clean) - Extension is active, no issues in current file
+  - ❌ `PHPMD` (active/issues) - Extension is active, current file has PHPMD issues
 - **Command Palette** (`Cmd+Shift+P` / `Ctrl+Shift+P`):
   - `DDEV PHPMD: Enable` - Enable the extension
   - `DDEV PHPMD: Disable` - Disable the extension
