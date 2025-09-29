@@ -60,7 +60,7 @@ async function main() {
 
 	// Build tests
 	const testCtx = await esbuild.context({
-		entryPoints: ['src/test/extension.test.ts'],
+		entryPoints: ['src/test/*.test.ts'],
 		bundle: true,
 		format: 'cjs',
 		minify: false,
