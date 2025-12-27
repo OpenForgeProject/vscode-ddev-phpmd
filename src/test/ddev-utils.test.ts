@@ -61,6 +61,9 @@ suite('DdevUtils Test Suite', () => {
 
         assert.strictEqual(result, true);
         assert.strictEqual(execSyncStub.calledOnce, true);
+        // Verify it uses execDdev wrapper
+        const callArgs = execSyncStub.firstCall.args;
+        assert.ok(callArgs[0].includes("bash -c 'XDEBUG_MODE=off echo \"test\"'"));
     });
 
     test('isDdevRunning returns false when DDEV container is not running', () => {
@@ -78,6 +81,9 @@ suite('DdevUtils Test Suite', () => {
 
         assert.strictEqual(result, true);
         assert.strictEqual(execSyncStub.calledOnce, true);
+        // Verify it uses execDdev wrapper
+        const callArgs = execSyncStub.firstCall.args;
+        assert.ok(callArgs[0].includes("bash -c 'XDEBUG_MODE=off phpmd --version'"));
     });
 
     test('isToolInstalled returns false when tool is not available', () => {
@@ -113,19 +119,17 @@ suite('DdevUtils Test Suite', () => {
     test('validateDdevTool returns error message for DDEV issues', () => {
         // First call (hasDdevProject) succeeds
         execSyncStub.onFirstCall().returns('exists\n');
-        // Second call (tool version check) fails
-        execSyncStub.onSecondCall().throws(new Error('Tool not available'));
-        // Third call (error details) returns error
-        execSyncStub.onThirdCall().throws({
-            message: 'DDEV project not currently running',
-            stderr: 'not currently running'
-        });
+        // Second call (tool version check) fails with specific error
+        const error = new Error('DDEV project not currently running') as any;
+        error.stderr = 'not currently running';
+        execSyncStub.onSecondCall().throws(error);
 
         const result = DdevUtils.validateDdevTool('phpmd', '/test/workspace');
 
         assert.strictEqual(result.isValid, false);
         assert.strictEqual(result.errorType, 'unknown');
         assert.ok(result.userMessage?.includes('PHPMD not available'));
+        assert.ok(result.userMessage?.includes('DDEV appears to be stopped'));
     });
 
     test('execDdev returns output when command succeeds', () => {
@@ -136,6 +140,9 @@ suite('DdevUtils Test Suite', () => {
 
         assert.strictEqual(result, expectedOutput);
         assert.strictEqual(execSyncStub.calledOnce, true);
+
+        const callArgs = execSyncStub.firstCall.args;
+        assert.ok(callArgs[0].includes("bash -c 'XDEBUG_MODE=off phpmd test.php json cleancode'"));
     });
 
     test('execDdev returns stdout when command fails but has output', () => {
@@ -155,5 +162,17 @@ suite('DdevUtils Test Suite', () => {
         assert.throws(() => {
             DdevUtils.execDdev('phpmd test.php json cleancode', '/test/workspace');
         }, /Command failed/);
+    });
+
+    test('execDdev escapes single quotes in command', () => {
+        execSyncStub.returns('output');
+
+        DdevUtils.execDdev("echo 'hello'", '/test/workspace');
+
+        assert.strictEqual(execSyncStub.calledOnce, true);
+        const callArgs = execSyncStub.firstCall.args;
+        // echo 'hello' -> echo '\''hello'\''
+        // wrapped: bash -c 'XDEBUG_MODE=off echo '\''hello'\'''
+        assert.ok(callArgs[0].includes("echo '\\''hello'\\''"));
     });
 });
