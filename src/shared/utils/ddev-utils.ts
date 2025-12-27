@@ -64,10 +64,7 @@ export class DdevUtils {
      */
     public static isDdevRunning(workspacePath: string): boolean {
         try {
-            execSync('ddev exec echo "test"', {
-                cwd: workspacePath,
-                stdio: 'ignore'
-            });
+            this.execDdev('echo "test"', workspacePath);
             return true;
         } catch (error) {
             return false;
@@ -83,10 +80,7 @@ export class DdevUtils {
      */
     public static isToolInstalled(toolName: string, workspacePath: string): boolean {
         try {
-            execSync(`ddev exec ${toolName} --version`, {
-                cwd: workspacePath,
-                stdio: 'ignore'
-            });
+            this.execDdev(`${toolName} --version`, workspacePath);
             return true;
         } catch (error) {
             return false;
@@ -112,25 +106,14 @@ export class DdevUtils {
 
         // Try to run the tool
         try {
-            execSync(`ddev exec ${toolName} --version`, {
-                cwd: workspacePath,
-                stdio: 'ignore'
-            });
+            this.execDdev(`${toolName} --version`, workspacePath);
 
             return {
                 isValid: true
             };
         } catch (error: any) {
             // Try to get more specific error information
-            let errorDetails = '';
-            try {
-                execSync(`ddev exec ${toolName} --version`, {
-                    cwd: workspacePath,
-                    encoding: 'utf-8'
-                });
-            } catch (execError: any) {
-                errorDetails = execError.message || execError.stderr || '';
-            }
+            const errorDetails = error.message || error.stderr || '';
 
             // Build concise but informative error message
             let userMessage = `${toolName.toUpperCase()} not available`;
@@ -201,8 +184,12 @@ export class DdevUtils {
      * @throws Error if the command fails
      */
     public static execDdev(command: string, workspacePath: string): string {
+        // Escape single quotes in the command to prevent breaking the bash -c string
+        const escapedCommand = command.replace(/'/g, "'\\''");
+        const wrappedCommand = `bash -c 'XDEBUG_MODE=off ${escapedCommand}'`;
+
         try {
-            return execSync(`ddev exec ${command}`, {
+            return execSync(`ddev exec ${wrappedCommand}`, {
                 cwd: workspacePath,
                 encoding: 'utf-8'
             });
