@@ -1,5 +1,8 @@
 # DDEV PHPMD Extension for VS Code
 
+> [!WARNING]
+> **This project is no longer maintained.** It has been abandoned in favor of the [Trunk Quality Check](https://marketplace.visualstudio.com/items?itemName=Trunk.io) extension, which provides a more comprehensive and actively maintained solution for code quality checks.
+
 This extension integrates [PHP Mess Detector (PHPMD)](https://phpmd.org/) with Visual Studio Code using [DDEV](https://ddev.com/) as the runtime environment. It provides real-time code quality analysis for PHP projects running in DDEV containers.
 
 ## Features

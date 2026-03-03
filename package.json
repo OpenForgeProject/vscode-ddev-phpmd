@@ -1,7 +1,7 @@
 {
   "name": "vscode-ddev-phpmd",
   "displayName": "DDEV PHPMD",
-  "description": "PHP Mess Detector integration for VS Code using DDEV",
+  "description": "[ABANDONED] This project is no longer maintained. Please use Trunk Quality Check instead.",
   "version": "0.7.0",
   "publisher": "OpenForgeProject",
   "license": "GPL-3.0",
